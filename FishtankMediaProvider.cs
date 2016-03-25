@@ -17,7 +17,6 @@ namespace Fishtank.MediaResolverPatch
     /// Intercept the media request handler and apply custom caching to certain media files
     /// based on their extension and configured in GlobalConfiguration.MediaExtensionsNotToClientCache
     /// 
-    /// **Modified 2014-06-16
     /// This code base is taken from Sitecore.Kernel.DLL and altered so that media library requests aren't encoded. 
     /// Sitecore Patch Note:
     /// When rendering media URLs, the system did not use the configuration in the encodeNameReplacements section to replace special characters in the URLs. 
@@ -54,47 +53,74 @@ namespace Fishtank.MediaResolverPatch
 
         public override string GetMediaUrl(MediaItem item, MediaUrlOptions options)
         {
-            Assert.ArgumentNotNull((object)item, "item");
-            Assert.ArgumentNotNull((object)options, "options");
-            bool flag = options.Thumbnail || this.HasMediaContent((Sitecore.Data.Items.Item)item);
+            Assert.ArgumentNotNull(item, "item");
+            Assert.ArgumentNotNull(options, "options");
+            bool flag = options.Thumbnail || this.HasMediaContent(item);
             if (!flag && item.InnerItem["path"].Length > 0)
             {
                 if (!options.LowercaseUrls)
+                {
                     return item.InnerItem["path"];
-                else
-                    return item.InnerItem["path"].ToLowerInvariant();
+                }
+                return item.InnerItem["path"].ToLowerInvariant();
             }
             else if (options.UseDefaultIcon && !flag)
             {
                 if (!options.LowercaseUrls)
+                {
                     return Themes.MapTheme(Settings.DefaultIcon);
-                else
-                    return Themes.MapTheme(Settings.DefaultIcon).ToLowerInvariant();
+                }
+                return Themes.MapTheme(Settings.DefaultIcon).ToLowerInvariant();
             }
             else
             {
                 Assert.IsTrue(this.Config.MediaPrefixes[0].Length > 0, "media prefixes are not configured properly.");
-                string str1 = this.MediaLinkPrefix;
+                string text = this.MediaLinkPrefix;
                 if (options.AbsolutePath)
-                    str1 = options.VirtualFolder + str1;
-                else if (str1.StartsWith("/", StringComparison.InvariantCulture))
-                    str1 = StringUtil.Mid(str1, 1);
-                string part2 = MainUtil.EncodePath(str1, '/');
+                {
+                    text = options.VirtualFolder + text;
+                }
+                else if (text.StartsWith("/", System.StringComparison.InvariantCulture))
+                {
+                    text = StringUtil.Mid(text, 1);
+                }
+                //No needs to encode path
+                //text = MainUtil.EncodePath(text, '/');
                 if (options.AlwaysIncludeServerUrl)
-                    part2 = FileUtil.MakePath(string.IsNullOrEmpty(options.MediaLinkServerUrl) ? WebUtil.GetServerUrl() : options.MediaLinkServerUrl, part2, '/');
-                string str2 = StringUtil.EnsurePrefix('.', StringUtil.GetString(options.RequestExtension, item.Extension, "ashx"));
-                string str3 = options.ToString();
-                if (str3.Length > 0)
-                    str2 = str2 + "?" + str3;
-                string str4 = "/sitecore/media library/";
+                {
+                    text = FileUtil.MakePath(string.IsNullOrEmpty(options.MediaLinkServerUrl) ? WebUtil.GetServerUrl() : options.MediaLinkServerUrl, text, '/');
+                }
+                string text2 = StringUtil.GetString(new string[]
+                {
+                    options.RequestExtension,
+                    item.Extension,
+                    "ashx"
+                });
+                text2 = StringUtil.EnsurePrefix('.', text2);
+                string text3 = options.ToString();
+                if (text3.Length > 0)
+                {
+                    text2 = text2 + "?" + text3;
+                }
+                string text4 = "/sitecore/media library/";
                 string path = item.InnerItem.Paths.Path;
-                //2014-06-16 JG - Removed decode call below
-                string str5 = !options.UseItemPath || !path.StartsWith(str4, StringComparison.OrdinalIgnoreCase) ? item.ID.ToShortID().ToString() : StringUtil.Mid(path, str4.Length);
-                string str6 = part2 + str5 + (options.IncludeExtension ? str2 : string.Empty);
-                if (!options.LowercaseUrls)
-                    return str6;
+                string text5;
+                if (options.UseItemPath && path.StartsWith(text4, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    text5 = StringUtil.Mid(path, text4.Length);
+                }
                 else
-                    return str6.ToLowerInvariant();
+                {
+                    text5 = item.ID.ToShortID().ToString();
+                }
+                //No needs to encode path
+                //text5 = MainUtil.EncodePath(text5, '/');
+                text5 = text + text5 + (options.IncludeExtension ? text2 : string.Empty);
+                if (!options.LowercaseUrls)
+                {
+                    return text5;
+                }
+                return text5.ToLowerInvariant();
             }
         }
 
